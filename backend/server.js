@@ -140,41 +140,37 @@ function parseWeightBand(weightStr) {
 
 // Map shipping channels to their tab patterns
 // Each shipping channel has ONE tab (we only need one tab to calculate everything)
-// Standard has 2 tabs: 1 for US, 1 for non-US
+// Standard has tabs for International/Intl Standard (no separate US tab)
 // Other channels have 1 tab each
 function getTabsForShippingChannel(channel, sheetNames) {
   const channelLower = channel.toLowerCase().trim();
   
-  // Standard channel has 2 tabs: 1 for US, 1 for non-US
+  // Standard channel - look for International Standard or Intl Standard tabs
   if (channelLower === 'standard' || (channelLower.includes('standard') && !channelLower.includes('battery') && !channelLower.includes('guaranteed'))) {
-    // Find US tab - look for "United States" or "US" in tab name
-    const usTab = sheetNames
+    // Find Standard tabs - look for "International Standard", "Intl Standard", or just "Standard"
+    const standardTabs = sheetNames
       .filter(name => {
         const nameLower = name.toLowerCase();
-        return nameLower.includes('united states') || 
-               (nameLower.includes('us') && !nameLower.includes('international')) ||
-               nameLower === 'united states';
+        return (nameLower.includes('international standard') || 
+                nameLower.includes('intl standard') ||
+                (nameLower.includes('standard') && 
+                 !nameLower.includes('battery') && 
+                 !nameLower.includes('guaranteed') &&
+                 !nameLower.includes('priority') &&
+                 !nameLower.includes('cosmetic') &&
+                 !nameLower.includes('bulky') &&
+                 !nameLower.includes('bonded'))) &&
+               !nameLower.includes('united states'); // Exclude US-specific tabs
       })
-      .sort()[0]; // First US tab
+      .sort();
     
-    // Find non-US tab - look for "International" or "Intl" but not US
-    const nonUsTab = sheetNames
-      .filter(name => {
-        const nameLower = name.toLowerCase();
-        return (nameLower.includes('international') || 
-                nameLower.includes('intl standard')) &&
-               !nameLower.includes('united states') &&
-               !nameLower.includes('us pricing') &&
-               !nameLower.includes('us ') &&
-               nameLower !== 'united states';
-      })
-      .sort()[0]; // First non-US tab
+    // Take first 2 tabs if available (as mentioned: Standard has 2 tabs)
+    const selectedTabs = standardTabs.slice(0, 2);
     
-    console.log(`📊 Standard channel tabs - US: ${usTab || 'none'}, Non-US: ${nonUsTab || 'none'}`);
+    console.log(`📊 Standard channel tabs: ${selectedTabs.join(', ') || 'none'}`);
     
     return {
-      us: usTab ? [usTab] : [],
-      nonUs: nonUsTab ? [nonUsTab] : []
+      tabs: selectedTabs
     };
   }
   
@@ -392,8 +388,16 @@ app.get('/api/shipping-channels', async (req, res) => {
       }
     }
     
-    // Also check for "United States" tab which indicates Standard channel
-    if (sheetNames.some(name => name.toLowerCase().includes('united states'))) {
+    // Check for International Standard or Intl Standard tabs which indicate Standard channel
+    if (sheetNames.some(name => {
+      const nameLower = name.toLowerCase();
+      return (nameLower.includes('international standard') || 
+              nameLower.includes('intl standard') ||
+              (nameLower.includes('standard') && 
+               !nameLower.includes('battery') && 
+               !nameLower.includes('guaranteed') &&
+               !nameLower.includes('priority')));
+    })) {
       channels.add('Standard');
     }
     

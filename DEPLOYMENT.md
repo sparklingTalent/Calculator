@@ -16,12 +16,15 @@ This guide covers deploying the Shipping Cost Calculator to production.
 1. Create account at [railway.app](https://railway.app)
 2. Create new project → Deploy from GitHub
 3. Select your repository
-4. Add environment variables:
+4. **Configure Build Settings:**
+   - Railway will automatically detect the `railway.json` configuration
+   - Build command: `npm run build` (installs frontend deps and builds)
+   - Start command: `cd backend && npm start`
+5. Add environment variables:
    - `GOOGLE_SHEET_ID`
-   - `GOOGLE_SHEET_RANGE`
    - `GOOGLE_SERVICE_ACCOUNT_KEY` (paste JSON content or use file upload)
    - `PORT` (Railway sets this automatically)
-5. Deploy!
+6. Deploy!
 
 ### Option 2: Render
 
