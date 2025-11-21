@@ -4,8 +4,8 @@ nixPkgs = ["nodejs_20"]
 [phases.install]
 cmds = [
   "npm install",
-  "cd backend && npm install",
-  "cd ../frontend && npm install"
+  "cd backend && npm install && cd ..",
+  "cd frontend && npm install && cd .."
 ]
 
 [phases.build]
