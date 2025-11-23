@@ -57,8 +57,16 @@ function ResultCard({ calculation, loading }) {
               <div className="cost-label-text">
                 <span className="cost-label-title">Shipping Cost</span>
                 <span className="cost-label-subtitle">
-                  Base: ${calculation.baseRate?.toFixed(2) || '0.00'} + 
-                  ${calculation.perKgRate?.toFixed(2) || '0.00'}/kg × {calculation.weightUsed?.toFixed(2) || '0.00'}kg
+                  {calculation.baseRate && calculation.baseRate > 0 ? (
+                    <>
+                      Base: ${calculation.baseRate.toFixed(2)} + 
+                      ${calculation.freightPerUnit?.toFixed(2) || '0.00'}/{calculation.weightUnit} × {calculation.weightUsed?.toFixed(2) || '0.00'}{calculation.weightUnit}
+                    </>
+                  ) : (
+                    <>
+                      ${calculation.freightPerUnit?.toFixed(2) || '0.00'}/{calculation.weightUnit} × {calculation.weightUsed?.toFixed(2) || '0.00'}{calculation.weightUnit}
+                    </>
+                  )}
                 </span>
               </div>
             </div>
@@ -86,7 +94,13 @@ function ResultCard({ calculation, loading }) {
             <div className="detail-icon">📅</div>
             <div className="detail-content">
               <span className="detail-label">Estimated Delivery</span>
-              <span className="detail-value">{calculation.deliveryDays} days</span>
+              <span className="detail-value">
+                {calculation.deliveryDays && calculation.deliveryDays !== 'N/A' 
+                  ? (typeof calculation.deliveryDays === 'string' && calculation.deliveryDays.includes('days')
+                      ? calculation.deliveryDays
+                      : `${calculation.deliveryDays} days`)
+                  : 'N/A'}
+              </span>
             </div>
           </div>
           

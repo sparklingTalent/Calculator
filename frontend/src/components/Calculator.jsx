@@ -23,6 +23,7 @@ function Calculator() {
   const [countries, setCountries] = useState([]);
   const [countriesData, setCountriesData] = useState({});
   const [availableShippingLines, setAvailableShippingLines] = useState([]);
+  const [selectedShippingLineData, setSelectedShippingLineData] = useState(null);
   const [calculation, setCalculation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
@@ -81,11 +82,23 @@ function Calculator() {
           ...prev,
           shippingLine: '',
         }));
+        setSelectedShippingLineData(null);
       }
     } else {
       setAvailableShippingLines([]);
+      setSelectedShippingLineData(null);
     }
   }, [formData.country, formData.zone, countriesData]);
+
+  // Update selected shipping line data when shipping line changes
+  useEffect(() => {
+    if (formData.shippingLine && availableShippingLines.length > 0) {
+      const shippingLine = availableShippingLines.find(line => line.key === formData.shippingLine);
+      setSelectedShippingLineData(shippingLine || null);
+    } else {
+      setSelectedShippingLineData(null);
+    }
+  }, [formData.shippingLine, availableShippingLines]);
 
   const fetchCountries = async () => {
     try {
@@ -132,8 +145,33 @@ function Calculator() {
         return;
       }
 
+      // Validate and format weight (2 decimal places)
+      const weightValue = parseFloat(formData.weight);
+      if (isNaN(weightValue) || weightValue <= 0) {
+        setError('Please enter a valid weight greater than 0');
+        return;
+      }
+
+      // Check weight limit based on selected shipping line
+      if (selectedShippingLineData) {
+        const maxWeight = formData.weightUnit === 'kg' 
+          ? selectedShippingLineData.maxWeightKg 
+          : selectedShippingLineData.maxWeightLb;
+        
+        if (maxWeight && weightValue > maxWeight) {
+          setError(`Weight cannot exceed ${maxWeight.toFixed(2)} ${formData.weightUnit}. Maximum weight for this shipping line is ${maxWeight.toFixed(2)} ${formData.weightUnit}.`);
+          return;
+        }
+      }
+
+      // General limit check
+      if (weightValue > 9999.99) {
+        setError('Weight cannot exceed 9999.99');
+        return;
+      }
+
       const payload = {
-        weight: parseFloat(formData.weight),
+        weight: parseFloat(weightValue.toFixed(2)), // Ensure 2 decimal places
         weightUnit: formData.weightUnit,
         country: formData.country,
         shippingLine: formData.shippingLine, // This is the key from availableShippingLines
@@ -279,17 +317,37 @@ function Calculator() {
                 <div className="input-group">
                   <label htmlFor="weight" className="input-label">
                     Weight
+                    {selectedShippingLineData && selectedShippingLineData.maxWeightKg && selectedShippingLineData.maxWeightLb && (
+                      <span className="weight-limit-info">
+                        <span className="limit-text">
+                          (Max: {formData.weightUnit === 'kg' 
+                            ? `${selectedShippingLineData.maxWeightKg} kg` 
+                            : `${selectedShippingLineData.maxWeightLb} lb`})
+                        </span>
+                      </span>
+                    )}
                   </label>
                   <div className="weight-input-group">
                     <input
                       id="weight"
                       type="number"
                       value={formData.weight}
-                      onChange={(e) => handleInputChange('weight', e.target.value)}
+                      onChange={(e) => {
+                        // Allow 2 decimal places
+                        const value = e.target.value;
+                        if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
+                          handleInputChange('weight', value);
+                        }
+                      }}
                       className="input-field weight-input"
-                      placeholder="0.0"
-                      step="0.1"
+                      placeholder="0.00"
+                      step="0.01"
                       min="0"
+                      max={selectedShippingLineData 
+                        ? (formData.weightUnit === 'kg' 
+                            ? selectedShippingLineData.maxWeightKg || 9999.99
+                            : selectedShippingLineData.maxWeightLb || 9999.99)
+                        : 9999.99}
                       required
                     />
                     <select
@@ -301,6 +359,11 @@ function Calculator() {
                       <option value="lb">lb</option>
                     </select>
                   </div>
+                  {selectedShippingLineData && selectedShippingLineData.maxWeightKg && selectedShippingLineData.maxWeightLb && (
+                    <div className="weight-limit-hint">
+                      Maximum weight: {selectedShippingLineData.maxWeightKg} kg ({selectedShippingLineData.maxWeightLb} lb)
+                    </div>
+                  )}
                 </div>
               </div>
 

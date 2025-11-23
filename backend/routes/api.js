@@ -132,9 +132,45 @@ router.get('/countries', async (req, res) => {
                 word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
               ).join(' ');
           
+          // Calculate weight limits for this shipping line
+          // Check both zones (if country has zones) and direct shipping lines
+          let maxWeightKg = 0;
+          let maxWeightLb = 0;
+          
+          // Check shipping lines data
+          const shippingLineData = allShippingLines[country][key];
+          if (shippingLineData && shippingLineData.bands && shippingLineData.bands.length > 0) {
+            for (const band of shippingLineData.bands) {
+              if (band.weightKg && band.weightKg.max > maxWeightKg) {
+                maxWeightKg = band.weightKg.max;
+              }
+              if (band.weightLb && band.weightLb.max > maxWeightLb) {
+                maxWeightLb = band.weightLb.max;
+              }
+            }
+          }
+          
+          // Also check zones data if country has zones
+          if (allZones[country]) {
+            for (const zone of Object.keys(allZones[country])) {
+              if (allZones[country][zone][key] && allZones[country][zone][key].bands) {
+                for (const band of allZones[country][zone][key].bands) {
+                  if (band.weightKg && band.weightKg.max > maxWeightKg) {
+                    maxWeightKg = band.weightKg.max;
+                  }
+                  if (band.weightLb && band.weightLb.max > maxWeightLb) {
+                    maxWeightLb = band.weightLb.max;
+                  }
+                }
+              }
+            }
+          }
+          
           availableShippingLines.push({
             key: key,
-            name: name
+            name: name,
+            maxWeightKg: maxWeightKg > 0 ? parseFloat(maxWeightKg.toFixed(2)) : null,
+            maxWeightLb: maxWeightLb > 0 ? parseFloat(maxWeightLb.toFixed(2)) : null
           });
         }
       } else {
@@ -332,6 +368,19 @@ router.post('/calculate', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields: weight, country, and shippingLine are required' });
     }
     
+    // Validate weight
+    const weightNum = parseFloat(weight);
+    if (isNaN(weightNum) || weightNum <= 0) {
+      return res.status(400).json({ error: 'Weight must be a positive number' });
+    }
+    
+    if (weightNum > 9999.99) {
+      return res.status(400).json({ error: 'Weight cannot exceed 9999.99' });
+    }
+    
+    // Ensure weight has max 2 decimal places
+    const normalizedWeight = parseFloat(weightNum.toFixed(2));
+    
     if (!sheetsService.isInitialized()) {
       return res.status(503).json({ error: 'Google Sheets API not configured' });
     }
@@ -425,9 +474,9 @@ router.post('/calculate', async (req, res) => {
       }
     }
     
-    // Convert weight to both units for band matching
-    const weightInKg = convertWeight(parseFloat(weight), weightUnit, 'kg');
-    const weightInLb = convertWeight(parseFloat(weight), weightUnit, 'lb');
+    // Convert weight to both units for band matching (using normalized weight)
+    const weightInKg = convertWeight(normalizedWeight, weightUnit, 'kg');
+    const weightInLb = convertWeight(normalizedWeight, weightUnit, 'lb');
     
     // Use the shippingLine from request (normalize it)
     const normalizedShippingLine = shippingLine.toLowerCase().replace(/\s+/g, '-');
@@ -471,6 +520,23 @@ router.post('/calculate', async (req, res) => {
     const useLb = weightUnit === 'lb';
     const searchWeight = useLb ? weightInLb : weightInKg;
     
+    // Find max weight from all bands to validate weight limit
+    let maxWeight = 0;
+    for (const band of serviceData.bands) {
+      const weightBand = useLb ? band.weightLb : band.weightKg;
+      if (weightBand && weightBand.max > maxWeight) {
+        maxWeight = weightBand.max;
+      }
+    }
+    
+    // Check if weight exceeds the maximum weight band
+    if (maxWeight > 0 && searchWeight > maxWeight) {
+      const maxWeightFormatted = parseFloat(maxWeight.toFixed(2));
+      return res.status(400).json({ 
+        error: `Weight exceeds maximum allowed weight of ${maxWeightFormatted} ${weightUnit}. Maximum weight for this shipping line is ${maxWeightFormatted} ${weightUnit}.` 
+      });
+    }
+    
     let matchedBand = null;
     for (const band of serviceData.bands) {
       const weightBand = useLb ? band.weightLb : band.weightKg;
@@ -480,7 +546,7 @@ router.post('/calculate', async (req, res) => {
       }
     }
     
-    // If no match, use the last band (for weights above max)
+    // If no match, use the last band (for weights at or above max)
     if (!matchedBand && serviceData.bands.length > 0) {
       matchedBand = serviceData.bands[serviceData.bands.length - 1];
     }
@@ -506,6 +572,11 @@ router.post('/calculate', async (req, res) => {
     
     const totalCost = shippingCost + fulfillmentFee;
     
+    // Calculate breakdown for display
+    // Currently, there's no base rate - it's just per unit pricing
+    const baseRate = 0; // No base rate in current pricing model
+    const perUnitRate = freightPerUnit || 0;
+    
     res.json({
       shippingCost: parseFloat(shippingCost.toFixed(2)),
       fulfillmentFee: parseFloat(fulfillmentFee.toFixed(2)),
@@ -515,6 +586,9 @@ router.post('/calculate', async (req, res) => {
       weightUsed: parseFloat(searchWeight.toFixed(2)),
       weightUnit: weightUnit,
       freightPerUnit: freightPerUnit ? parseFloat(freightPerUnit.toFixed(2)) : null,
+      baseRate: baseRate,
+      perKgRate: weightUnit === 'kg' ? perUnitRate : null,
+      perLbRate: weightUnit === 'lb' ? perUnitRate : null,
     });
   } catch (error) {
     console.error('Error calculating costs:', error);
