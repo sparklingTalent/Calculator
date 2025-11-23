@@ -77,15 +77,81 @@ git push heroku main
 4. Add environment variable:
    - `VITE_API_URL` = your backend URL
 
-### Option 2: Vercel
+### Option 2: Vercel (Recommended for Frontend)
 
+#### Method 1: Deploy via Vercel CLI
+
+1. Install Vercel CLI:
+```bash
+npm install -g vercel
+```
+
+2. Navigate to frontend directory:
 ```bash
 cd frontend
-npm install -g vercel
+```
+
+3. Deploy:
+```bash
 vercel
 ```
 
-Set `VITE_API_URL` in Vercel dashboard.
+4. Follow the prompts:
+   - Set up and deploy? **Yes**
+   - Which scope? (Select your account)
+   - Link to existing project? **No** (for first time)
+   - Project name? (Press Enter for default)
+   - Directory? **./** (current directory)
+   - Override settings? **No**
+
+5. Add environment variable in Vercel Dashboard:
+   - Go to your project → Settings → Environment Variables
+   - Add: `VITE_API_URL` = `https://your-railway-backend-url.railway.app`
+
+6. Redeploy to apply environment variable:
+```bash
+vercel --prod
+```
+
+#### Method 2: Deploy via GitHub Integration (Recommended)
+
+1. Push your code to GitHub (if not already)
+
+2. Go to [vercel.com](https://vercel.com) and sign in
+
+3. Click **Add New Project**
+
+4. Import your GitHub repository
+
+5. Configure the project:
+   - **Framework Preset**: Vite
+   - **Root Directory**: `frontend`
+   - **Build Command**: `npm run build` (auto-detected)
+   - **Output Directory**: `dist` (auto-detected)
+   - **Install Command**: `npm install` (auto-detected)
+
+6. Add Environment Variable:
+   - **Name**: `VITE_API_URL`
+   - **Value**: Your Railway backend URL (e.g., `https://your-app.railway.app`)
+   - **Environment**: Production, Preview, Development (select all)
+
+7. Click **Deploy**
+
+8. Vercel will automatically deploy on every push to your main branch!
+
+#### Vercel Configuration
+
+The `frontend/vercel.json` file is already configured with:
+- Build command
+- Output directory
+- SPA routing (all routes redirect to index.html)
+- Framework detection
+
+#### Custom Domain (Optional)
+
+1. Go to your project → Settings → Domains
+2. Add your custom domain
+3. Follow DNS configuration instructions
 
 ### Option 3: GitHub Pages
 
