@@ -12,6 +12,9 @@ COPY backend/package*.json ./backend/
 WORKDIR /app/backend
 RUN npm ci --omit=dev
 
+# Copy backend source files
+COPY backend/ ./backend/
+
 # Install frontend dependencies
 WORKDIR /app
 COPY frontend/package*.json ./frontend/
@@ -28,15 +31,16 @@ FROM node:20-alpine AS production
 
 WORKDIR /app
 
-# Copy backend files
+# Copy backend package files first
 COPY --from=base /app/backend/package*.json ./
 RUN npm ci --omit=dev
 
-COPY --from=base /app/backend ./
+# Copy all backend files (including server.js)
+COPY --from=base /app/backend/ ./
 
 # Expose port
 EXPOSE 3001
 
-# Start server (already in /app which is the backend directory)
+# Start server
 CMD ["node", "server.js"]
 
