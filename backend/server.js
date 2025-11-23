@@ -28,35 +28,73 @@ let sheetNamesCache = null; // Pre-fetched sheet names
 
 async function initializeSheets() {
   try {
-    const keyFile = process.env.GOOGLE_SERVICE_ACCOUNT_KEY || './service-account-key.json';
     const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+    const serviceAccountKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
     
-    // Only initialize if we have both the key file and spreadsheet ID
-    if (spreadsheetId && fs.existsSync(keyFile)) {
-      const auth = new google.auth.GoogleAuth({
-        keyFile: keyFile,
+    // Check if we have the required credentials
+    if (!spreadsheetId) {
+      console.log('❌ GOOGLE_SHEET_ID not set');
+      return;
+    }
+    
+    if (!serviceAccountKey) {
+      console.log('❌ GOOGLE_SERVICE_ACCOUNT_KEY not set');
+      return;
+    }
+    
+    let auth;
+    
+    // Check if GOOGLE_SERVICE_ACCOUNT_KEY is a JSON string (from environment variable)
+    // or a file path
+    try {
+      // Try to parse as JSON (if it's a JSON string from env var)
+      const keyData = JSON.parse(serviceAccountKey);
+      auth = new google.auth.GoogleAuth({
+        credentials: keyData,
         scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
       });
-      sheets = google.sheets({ version: 'v4', auth });
-      console.log('✅ Google Sheets API initialized');
-      
-      // Pre-fetch sheet names on startup to warm up the cache
-      try {
-        const cacheKey = `sheet-names-${spreadsheetId}`;
-        const response = await sheets.spreadsheets.get({
-          spreadsheetId,
-          fields: 'sheets.properties.title', // Only fetch what we need
+      console.log('✅ Using Google Service Account from environment variable');
+    } catch (parseError) {
+      // If parsing fails, try as file path
+      const keyFile = serviceAccountKey;
+      if (fs.existsSync(keyFile)) {
+        auth = new google.auth.GoogleAuth({
+          keyFile: keyFile,
+          scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
         });
-        const sheetNames = response.data.sheets.map(sheet => sheet.properties.title);
-        cache.set(cacheKey, sheetNames, 3600);
-        sheetNamesCache = sheetNames;
-        console.log(`✅ Pre-fetched ${sheetNames.length} sheet names`);
-      } catch (prefetchError) {
-        console.log('⚠️  Could not pre-fetch sheet names:', prefetchError.message);
+        console.log('✅ Using Google Service Account from file');
+      } else {
+        // Try default file path
+        const defaultKeyFile = './service-account-key.json';
+        if (fs.existsSync(defaultKeyFile)) {
+          auth = new google.auth.GoogleAuth({
+            keyFile: defaultKeyFile,
+            scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+          });
+          console.log('✅ Using Google Service Account from default file');
+        } else {
+          console.log('❌ Google Service Account key not found');
+          return;
+        }
       }
-    } else {
-      console.log('❌ Google Sheets API not configured');
-      console.log('   Please set GOOGLE_SHEET_ID and GOOGLE_SERVICE_ACCOUNT_KEY in .env');
+    }
+    
+    sheets = google.sheets({ version: 'v4', auth });
+    console.log('✅ Google Sheets API initialized');
+    
+    // Pre-fetch sheet names on startup to warm up the cache
+    try {
+      const cacheKey = `sheet-names-${spreadsheetId}`;
+      const response = await sheets.spreadsheets.get({
+        spreadsheetId,
+        fields: 'sheets.properties.title', // Only fetch what we need
+      });
+      const sheetNames = response.data.sheets.map(sheet => sheet.properties.title);
+      cache.set(cacheKey, sheetNames, 3600);
+      sheetNamesCache = sheetNames;
+      console.log(`✅ Pre-fetched ${sheetNames.length} sheet names`);
+    } catch (prefetchError) {
+      console.log('⚠️  Could not pre-fetch sheet names:', prefetchError.message);
     }
   } catch (error) {
     console.log('❌ Google Sheets API not configured:', error.message);

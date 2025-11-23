@@ -20,11 +20,24 @@ This guide covers deploying the Shipping Cost Calculator to production.
    - Railway will automatically detect the `railway.json` configuration
    - Build command: `npm run build` (installs frontend deps and builds)
    - Start command: `cd backend && npm start`
-5. Add environment variables:
-   - `GOOGLE_SHEET_ID`
-   - `GOOGLE_SERVICE_ACCOUNT_KEY` (paste JSON content or use file upload)
-   - `PORT` (Railway sets this automatically)
-6. Deploy!
+5. **Add Environment Variables:**
+   - Go to your service → **Variables** tab
+   - Click **+ New Variable**
+   - Add these variables:
+     - **Name**: `GOOGLE_SHEET_ID`
+       - **Value**: Your Google Sheet ID (from the sheet URL)
+     - **Name**: `GOOGLE_SERVICE_ACCOUNT_KEY`
+       - **Value**: Paste the entire JSON content from `service-account-key.json`
+       - **Format**: Paste as a single-line JSON string, or use Railway's file upload
+     - **Note**: `PORT` is automatically set by Railway (usually 8080 or similar)
+6. **Get Your Backend URL:**
+   - Go to your service → **Settings** tab
+   - Scroll to **Networking** section
+   - Click **Generate Domain** (if not already generated)
+   - Copy the URL (e.g., `https://your-app-name.up.railway.app`)
+   - This is your backend URL to use in `VITE_API_URL` for Vercel
+7. **Redeploy** after adding environment variables (Railway auto-redeploys on env var changes)
+8. Check logs to verify: You should see `✅ Google Sheets API initialized` instead of the warning
 
 ### Option 2: Render
 

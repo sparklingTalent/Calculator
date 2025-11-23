@@ -4,7 +4,12 @@ import InputField from './InputField';
 import ResultCard from './ResultCard';
 import './Calculator.css';
 
+// Get API URL from environment variable (Vite requires VITE_ prefix)
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+// Debug: Log API URL (check browser console)
+console.log('🔗 API Base URL:', API_BASE_URL);
+console.log('📦 VITE_API_URL env var:', import.meta.env.VITE_API_URL);
 
 function Calculator() {
   const [formData, setFormData] = useState({
@@ -69,10 +74,19 @@ function Calculator() {
   const fetchShippingChannels = async () => {
     try {
       setLoadingData(true);
-      const response = await axios.get(`${API_BASE_URL}/api/shipping-channels`);
+      const url = `${API_BASE_URL}/api/shipping-channels`;
+      console.log('🚀 Fetching shipping channels from:', url);
+      const response = await axios.get(url);
+      console.log('✅ Shipping channels response:', response.data);
       setShippingChannels(response.data.channels || []);
     } catch (err) {
-      console.error('Error fetching shipping channels:', err);
+      console.error('❌ Error fetching shipping channels:', err);
+      console.error('❌ Error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        url: err.config?.url
+      });
       setError('Failed to load shipping channels. Please check your connection.');
     } finally {
       setLoadingData(false);
