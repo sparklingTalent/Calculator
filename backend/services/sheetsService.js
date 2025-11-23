@@ -124,12 +124,12 @@ class SheetsService {
         actualRange = `${range}!A:Z`;
       }
       
-      const response = await this.sheets.spreadsheets.values.get({
-        spreadsheetId: this.spreadsheetId,
-        range: actualRange,
-        valueRenderOption: 'UNFORMATTED_VALUE', // Faster - no formatting processing
-        dateTimeRenderOption: 'SERIAL_NUMBER', // Faster date handling
-      });
+    const response = await this.sheets.spreadsheets.values.get({
+      spreadsheetId: this.spreadsheetId,
+      range: actualRange,
+      valueRenderOption: 'FORMATTED_VALUE', // Use formatted values to get text for dates
+      dateTimeRenderOption: 'FORMATTED_STRING', // Get dates as formatted strings
+    });
       
       const data = response.data.values || [];
       // Cache sheet data for 30 minutes

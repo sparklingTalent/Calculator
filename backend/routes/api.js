@@ -494,6 +494,16 @@ router.post('/calculate', async (req, res) => {
     const fulfillmentFee = matchedBand.injection || 0;
     transitTime = matchedBand.transitTime || serviceData.transitTime;
     
+    // Clean up transit time - remove any date serial numbers that might have slipped through
+    if (transitTime && typeof transitTime === 'string') {
+      // Check if it's a large number string (date serial)
+      if (transitTime.match(/^\d{5,}$/)) {
+        transitTime = null; // Skip invalid transit time
+      }
+    } else if (transitTime && typeof transitTime === 'number' && transitTime > 1000) {
+      transitTime = null; // Skip date serial numbers
+    }
+    
     const totalCost = shippingCost + fulfillmentFee;
     
     res.json({

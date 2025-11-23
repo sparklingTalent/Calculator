@@ -281,9 +281,39 @@ function parseWeightBandData(row, indices) {
   const injection = indices.injection >= 0 
     ? parseFloat(row[indices.injection]?.toString().replace(/[^0-9.]/g, '')) 
     : null;
-  const transitTime = indices.transitTime >= 0 
-    ? row[indices.transitTime]?.toString().trim() 
-    : null;
+  // Parse transit time - handle both text and date serial numbers from Google Sheets
+  let transitTime = null;
+  if (indices.transitTime >= 0 && row[indices.transitTime] !== undefined && row[indices.transitTime] !== null) {
+    const transitTimeValue = row[indices.transitTime];
+    
+    // Check if it's a date serial number (Google Sheets date format)
+    // Date serial numbers are typically large numbers (e.g., 40000+)
+    // Transit time should be days (smaller numbers like 5-30), so if it's > 1000, it's likely a date
+    if (typeof transitTimeValue === 'number') {
+      if (transitTimeValue > 1000) {
+        // This is likely a date serial number - skip it as transit time should be days, not a date
+        // If the cell is formatted as a date, we should get the formatted string instead
+        transitTime = null;
+      } else if (transitTimeValue > 0 && transitTimeValue <= 365) {
+        // This is likely a number of days (reasonable range for transit time)
+        transitTime = `${Math.round(transitTimeValue)} days`;
+      } else {
+        // Very small number or zero, skip
+        transitTime = null;
+      }
+    } else {
+      // It's text, use as-is (with FORMATTED_VALUE, dates should come as formatted strings)
+      const transitTimeStr = transitTimeValue.toString().trim();
+      if (transitTimeStr && 
+          transitTimeStr.toLowerCase() !== 'transit' && 
+          transitTimeStr.toLowerCase() !== 'delivery' &&
+          transitTimeStr.toLowerCase() !== 'transit time' &&
+          transitTimeStr.toLowerCase() !== 'delivery time' &&
+          !transitTimeStr.match(/^\d{5,}$/)) { // Skip if it's a large number (date serial as string)
+        transitTime = transitTimeStr;
+      }
+    }
+  }
   
   if (!weightLb && !weightKg) return null;
   
