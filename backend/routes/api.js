@@ -108,36 +108,68 @@ router.get('/countries', async (req, res) => {
       }
     }
     
-    // Structure response: countries with their available shipping lines
+    // First, collect all unique shipping line keys for each country (from both zones and direct shipping lines)
+    const countryShippingLineKeys = {}; // country -> Set of shipping line keys
+    
+    for (const country of allCountries) {
+      countryShippingLineKeys[country] = new Set();
+      
+      // Add shipping lines from direct shippingLines structure
+      if (allShippingLines[country]) {
+        Object.keys(allShippingLines[country]).forEach(key => {
+          countryShippingLineKeys[country].add(key);
+        });
+      }
+      
+      // Add shipping lines from zones structure
+      if (allZones[country]) {
+        for (const zone of Object.keys(allZones[country])) {
+          if (allZones[country][zone]) {
+            Object.keys(allZones[country][zone]).forEach(key => {
+              countryShippingLineKeys[country].add(key);
+            });
+          }
+        }
+      }
+    }
+    
+    // Filter out countries with no shipping lines
+    const countriesWithShippingLines = Array.from(allCountries).filter(country => {
+      return countryShippingLineKeys[country] && countryShippingLineKeys[country].size > 0;
+    });
+    
+    console.log(`🌍 Total countries: ${allCountries.size}, Countries with shipping lines: ${countriesWithShippingLines.length}`);
+    
     const result = {
-      countries: Array.from(allCountries).sort(),
+      countries: countriesWithShippingLines.sort(),
       countriesData: {}
     };
     
-    // Organize data by country
-    for (const country of allCountries) {
+    // Organize data by country (only for countries with shipping lines)
+    for (const country of countriesWithShippingLines) {
       const hasZones = !!(allZones[country] && Object.keys(allZones[country]).length > 0);
       
       // Extract all available shipping lines for this country
       const availableShippingLines = [];
-      if (allShippingLines[country]) {
-        const shippingLineKeys = Object.keys(allShippingLines[country]);
-        console.log(`📦 ${country} has ${shippingLineKeys.length} shipping lines: ${shippingLineKeys.join(', ')}`);
+      const shippingLineKeys = Array.from(countryShippingLineKeys[country]);
+      
+      console.log(`📦 ${country} has ${shippingLineKeys.length} shipping lines: ${shippingLineKeys.join(', ')}`);
+      
+      for (const key of shippingLineKeys) {
+        // Get shipping line name from key (convert from "standard-battery" to "Standard Battery")
+        const name = key === 'default' 
+          ? extractShippingLineNameFromTabs(dataTabs, country) || 'Standard'
+          : key.split('-').map(word => 
+              word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+            ).join(' ');
         
-        for (const key of shippingLineKeys) {
-          // Get shipping line name from key (convert from "standard-battery" to "Standard Battery")
-          const name = key === 'default' 
-            ? extractShippingLineNameFromTabs(dataTabs, country) || 'Standard'
-            : key.split('-').map(word => 
-                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-              ).join(' ');
-          
-          // Calculate weight limits for this shipping line
-          // Check both zones (if country has zones) and direct shipping lines
-          let maxWeightKg = 0;
-          let maxWeightLb = 0;
-          
-          // Check shipping lines data
+        // Calculate weight limits for this shipping line
+        // Check both zones (if country has zones) and direct shipping lines
+        let maxWeightKg = 0;
+        let maxWeightLb = 0;
+        
+        // Check shipping lines data
+        if (allShippingLines[country] && allShippingLines[country][key]) {
           const shippingLineData = allShippingLines[country][key];
           if (shippingLineData && shippingLineData.bands && shippingLineData.bands.length > 0) {
             for (const band of shippingLineData.bands) {
@@ -149,32 +181,30 @@ router.get('/countries', async (req, res) => {
               }
             }
           }
-          
-          // Also check zones data if country has zones
-          if (allZones[country]) {
-            for (const zone of Object.keys(allZones[country])) {
-              if (allZones[country][zone][key] && allZones[country][zone][key].bands) {
-                for (const band of allZones[country][zone][key].bands) {
-                  if (band.weightKg && band.weightKg.max > maxWeightKg) {
-                    maxWeightKg = band.weightKg.max;
-                  }
-                  if (band.weightLb && band.weightLb.max > maxWeightLb) {
-                    maxWeightLb = band.weightLb.max;
-                  }
+        }
+        
+        // Also check zones data if country has zones
+        if (allZones[country]) {
+          for (const zone of Object.keys(allZones[country])) {
+            if (allZones[country][zone] && allZones[country][zone][key] && allZones[country][zone][key].bands) {
+              for (const band of allZones[country][zone][key].bands) {
+                if (band.weightKg && band.weightKg.max > maxWeightKg) {
+                  maxWeightKg = band.weightKg.max;
+                }
+                if (band.weightLb && band.weightLb.max > maxWeightLb) {
+                  maxWeightLb = band.weightLb.max;
                 }
               }
             }
           }
-          
-          availableShippingLines.push({
-            key: key,
-            name: name,
-            maxWeightKg: maxWeightKg > 0 ? parseFloat(maxWeightKg.toFixed(2)) : null,
-            maxWeightLb: maxWeightLb > 0 ? parseFloat(maxWeightLb.toFixed(2)) : null
-          });
         }
-      } else {
-        console.log(`⚠️  ${country} has no shipping lines in allShippingLines`);
+        
+        availableShippingLines.push({
+          key: key,
+          name: name,
+          maxWeightKg: maxWeightKg > 0 ? parseFloat(maxWeightKg.toFixed(2)) : null,
+          maxWeightLb: maxWeightLb > 0 ? parseFloat(maxWeightLb.toFixed(2)) : null
+        });
       }
       
       result.countriesData[country] = {
@@ -581,7 +611,7 @@ router.post('/calculate', async (req, res) => {
       shippingCost: parseFloat(shippingCost.toFixed(2)),
       fulfillmentFee: parseFloat(fulfillmentFee.toFixed(2)),
       totalCost: parseFloat(totalCost.toFixed(2)),
-      deliveryDays: transitTime || 'N/A',
+      deliveryDays: transitTime || '--',
       serviceName: shippingLine,
       weightUsed: parseFloat(searchWeight.toFixed(2)),
       weightUnit: weightUnit,

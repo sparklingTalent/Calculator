@@ -95,11 +95,11 @@ function ResultCard({ calculation, loading }) {
             <div className="detail-content">
               <span className="detail-label">Estimated Delivery</span>
               <span className="detail-value">
-                {calculation.deliveryDays && calculation.deliveryDays !== 'N/A' 
+                {calculation.deliveryDays && calculation.deliveryDays !== 'N/A' && calculation.deliveryDays !== '--'
                   ? (typeof calculation.deliveryDays === 'string' && calculation.deliveryDays.includes('days')
                       ? calculation.deliveryDays
                       : `${calculation.deliveryDays} days`)
-                  : 'N/A'}
+                  : '--'}
               </span>
             </div>
           </div>
