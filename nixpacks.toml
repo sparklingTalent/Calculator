@@ -1,3 +1,5 @@
+# This file is kept for reference but Railway should use Dockerfile
+# If Railway uses Nixpacks instead, update the start command below
 [phases.setup]
 nixPkgs = ["nodejs_20"]
 
@@ -13,6 +15,7 @@ cmds = [
   "cd frontend && npm run build"
 ]
 
+# Use node directly instead of cd command
 [start]
-cmd = "cd backend && npm start"
+cmd = "node server.js"
 

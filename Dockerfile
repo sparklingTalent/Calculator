@@ -37,6 +37,6 @@ COPY --from=base /app/backend ./
 # Expose port
 EXPOSE 3001
 
-# Start server
-CMD ["npm", "start"]
+# Start server (already in /app which is the backend directory)
+CMD ["node", "server.js"]
 
