@@ -13,16 +13,16 @@ console.log('📦 VITE_API_URL env var:', import.meta.env.VITE_API_URL);
 
 function Calculator() {
   const [formData, setFormData] = useState({
-    shippingChannel: '',
     country: '',
+    shippingLine: '',
     zone: '',
     weight: '',
     weightUnit: 'kg',
   });
 
-  const [shippingChannels, setShippingChannels] = useState([]);
   const [countries, setCountries] = useState([]);
   const [countriesData, setCountriesData] = useState({});
+  const [availableShippingLines, setAvailableShippingLines] = useState([]);
   const [calculation, setCalculation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
@@ -30,32 +30,17 @@ function Calculator() {
   const [availableZones, setAvailableZones] = useState([]);
   const [isCalculating, setIsCalculating] = useState(false);
 
-  // Fetch shipping channels on mount
+  // Fetch countries on mount
   useEffect(() => {
-    fetchShippingChannels();
+    fetchCountries();
   }, []);
-
-  // Fetch countries when shipping channel changes
-  useEffect(() => {
-    if (formData.shippingChannel) {
-      fetchCountries(formData.shippingChannel);
-      // Reset dependent fields
-      setFormData(prev => ({
-        ...prev,
-        country: '',
-        zone: '',
-      }));
-      setCalculation(null);
-    } else {
-      setCountries([]);
-      setAvailableZones([]);
-    }
-  }, [formData.shippingChannel]);
 
   // Update zones when country changes
   useEffect(() => {
     if (formData.country && countriesData[formData.country]) {
       const countryData = countriesData[formData.country];
+      
+      // Update zones
       if (countryData.hasZones && countryData.zoneList) {
         setAvailableZones(countryData.zoneList);
         // Auto-select first zone if none selected
@@ -66,43 +51,53 @@ function Calculator() {
         setAvailableZones([]);
         setFormData(prev => ({ ...prev, zone: '' }));
       }
+      
+      // Reset shipping line when country changes
+      setFormData(prev => ({
+        ...prev,
+        shippingLine: '',
+      }));
     } else {
       setAvailableZones([]);
+      setAvailableShippingLines([]);
     }
   }, [formData.country, countriesData]);
 
-  const fetchShippingChannels = async () => {
-    try {
-      setLoadingData(true);
-      const url = `${API_BASE_URL}/api/shipping-channels`;
-      console.log('🚀 Fetching shipping channels from:', url);
-      const response = await axios.get(url);
-      console.log('✅ Shipping channels response:', response.data);
-      setShippingChannels(response.data.channels || []);
-    } catch (err) {
-      console.error('❌ Error fetching shipping channels:', err);
-      console.error('❌ Error details:', {
-        message: err.message,
-        response: err.response?.data,
-        status: err.response?.status,
-        url: err.config?.url
-      });
-      setError('Failed to load shipping channels. Please check your connection.');
-    } finally {
-      setLoadingData(false);
+  // Update shipping lines when country or zone changes
+  useEffect(() => {
+    if (formData.country && countriesData[formData.country]) {
+      const countryData = countriesData[formData.country];
+      
+      // Update available shipping lines based on country (and zone if applicable)
+      if (countryData.availableShippingLines && countryData.availableShippingLines.length > 0) {
+        setAvailableShippingLines(countryData.availableShippingLines);
+      } else {
+        setAvailableShippingLines([]);
+      }
+      
+      // Reset shipping line when zone changes (if zones exist)
+      if (countryData.hasZones) {
+        setFormData(prev => ({
+          ...prev,
+          shippingLine: '',
+        }));
+      }
+    } else {
+      setAvailableShippingLines([]);
     }
-  };
+  }, [formData.country, formData.zone, countriesData]);
 
-  const fetchCountries = async (shippingChannel) => {
+  const fetchCountries = async () => {
     try {
       setLoadingData(true);
       setError(null);
-      const response = await axios.get(`${API_BASE_URL}/api/countries/${encodeURIComponent(shippingChannel)}`);
+      const response = await axios.get(`${API_BASE_URL}/api/countries`);
+      console.log('✅ Countries response:', response.data);
       setCountries(response.data.countries || []);
       setCountriesData(response.data.countriesData || {});
     } catch (err) {
       console.error('Error fetching countries:', err);
-      setError(err.response?.data?.error || 'Failed to load countries for this shipping channel.');
+      setError(err.response?.data?.error || 'Failed to load countries. Please check your connection.');
       setCountries([]);
       setCountriesData({});
     } finally {
@@ -131,11 +126,17 @@ function Calculator() {
       // Small delay for smooth animation
       await new Promise(resolve => setTimeout(resolve, 300));
 
+      // Validate inputs before sending
+      if (!formData.country || !formData.shippingLine || !formData.weight) {
+        setError('Please fill in all required fields');
+        return;
+      }
+
       const payload = {
         weight: parseFloat(formData.weight),
         weightUnit: formData.weightUnit,
-        shippingChannel: formData.shippingChannel,
         country: formData.country,
+        shippingLine: formData.shippingLine, // This is the key from availableShippingLines
       };
 
       // Only include zone if it's needed
@@ -143,7 +144,9 @@ function Calculator() {
         payload.zone = formData.zone;
       }
 
+      console.log('📤 Sending calculate request:', payload);
       const response = await axios.post(`${API_BASE_URL}/api/calculate`, payload);
+      console.log('✅ Calculate response:', response.data);
       setCalculation(response.data);
     } catch (err) {
       console.error('Calculation error:', err);
@@ -156,16 +159,15 @@ function Calculator() {
 
   const handleReset = () => {
     setFormData({
-      shippingChannel: '',
       country: '',
+      shippingLine: '',
       zone: '',
       weight: '',
       weightUnit: 'kg',
     });
     setCalculation(null);
     setError(null);
-    setCountries([]);
-    setCountriesData({});
+    setAvailableShippingLines([]);
     setAvailableZones([]);
   };
 
@@ -188,36 +190,6 @@ function Calculator() {
             <form onSubmit={handleCalculate} className="calculator-form">
               <div className="form-section">
                 <h2 className="section-title">
-                  <span className="section-icon">🚢</span>
-                  Shipping Channel
-                </h2>
-                
-                <div className="input-group">
-                  <label htmlFor="shippingChannel" className="input-label">
-                    Select Shipping Channel
-                  </label>
-                  <select
-                    id="shippingChannel"
-                    value={formData.shippingChannel}
-                    onChange={(e) => handleInputChange('shippingChannel', e.target.value)}
-                    className="input-field select-field"
-                    required
-                    disabled={loadingData}
-                  >
-                    <option value="">
-                      {loadingData ? 'Loading channels...' : 'Select shipping channel'}
-                    </option>
-                    {shippingChannels.map(channel => (
-                      <option key={channel} value={channel}>
-                        {channel}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-section">
-                <h2 className="section-title">
                   <span className="section-icon">📍</span>
                   Destination
                 </h2>
@@ -232,14 +204,10 @@ function Calculator() {
                     onChange={(e) => handleInputChange('country', e.target.value)}
                     className="input-field select-field"
                     required
-                    disabled={!formData.shippingChannel || loadingData}
+                    disabled={loadingData}
                   >
                     <option value="">
-                      {!formData.shippingChannel 
-                        ? 'Select shipping channel first' 
-                        : loadingData 
-                        ? 'Loading countries...'
-                        : 'Select destination country'}
+                      {loadingData ? 'Loading countries...' : 'Select destination country'}
                     </option>
                     {countries.map(country => (
                       <option key={country} value={country}>
@@ -249,7 +217,7 @@ function Calculator() {
                   </select>
                 </div>
 
-                {showZoneField && (
+                {showZoneField && formData.country && (
                   <div className="input-group zone-field fade-in">
                     <label htmlFor="zone" className="input-label">
                       Zone
@@ -266,6 +234,33 @@ function Calculator() {
                       {availableZones.map(zone => (
                         <option key={zone} value={zone}>
                           {zone}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {formData.country && (!showZoneField || formData.zone) && (
+                  <div className="input-group fade-in">
+                    <label htmlFor="shippingLine" className="input-label">
+                      Shipping Line
+                    </label>
+                    <select
+                      id="shippingLine"
+                      value={formData.shippingLine}
+                      onChange={(e) => handleInputChange('shippingLine', e.target.value)}
+                      className="input-field select-field"
+                      required
+                      disabled={!formData.country || (showZoneField && !formData.zone) || loadingData || availableShippingLines.length === 0}
+                    >
+                      <option value="">
+                        {availableShippingLines.length === 0
+                          ? 'No shipping lines available'
+                          : 'Select shipping line'}
+                      </option>
+                      {availableShippingLines.map(line => (
+                        <option key={line.key} value={line.key}>
+                          {line.name}
                         </option>
                       ))}
                     </select>
@@ -318,7 +313,7 @@ function Calculator() {
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  disabled={loading || loadingData || !formData.weight || !formData.shippingChannel || !formData.country || (showZoneField && !formData.zone)}
+                  disabled={loading || loadingData || !formData.weight || !formData.country || !formData.shippingLine || (showZoneField && !formData.zone)}
                 >
                   {loading ? (
                     <>
