@@ -240,32 +240,34 @@ function Calculator() {
                   </div>
                 )}
 
-                {formData.country && (!showZoneField || formData.zone) && (
-                  <div className="input-group fade-in">
-                    <label htmlFor="shippingLine" className="input-label">
-                      Shipping Line
-                    </label>
-                    <select
-                      id="shippingLine"
-                      value={formData.shippingLine}
-                      onChange={(e) => handleInputChange('shippingLine', e.target.value)}
-                      className="input-field select-field"
-                      required
-                      disabled={!formData.country || (showZoneField && !formData.zone) || loadingData || availableShippingLines.length === 0}
-                    >
-                      <option value="">
-                        {availableShippingLines.length === 0
-                          ? 'No shipping lines available'
-                          : 'Select shipping line'}
+                <div className="input-group">
+                  <label htmlFor="shippingLine" className="input-label">
+                    Shipping Line
+                  </label>
+                  <select
+                    id="shippingLine"
+                    value={formData.shippingLine}
+                    onChange={(e) => handleInputChange('shippingLine', e.target.value)}
+                    className="input-field select-field"
+                    required
+                    disabled={!formData.country || (showZoneField && !formData.zone) || loadingData || availableShippingLines.length === 0}
+                  >
+                    <option value="">
+                      {!formData.country
+                        ? 'Select country first'
+                        : showZoneField && !formData.zone
+                        ? 'Select zone first'
+                        : availableShippingLines.length === 0
+                        ? 'No shipping lines available'
+                        : 'Select shipping line'}
+                    </option>
+                    {availableShippingLines.map(line => (
+                      <option key={line.key} value={line.key}>
+                        {line.name}
                       </option>
-                      {availableShippingLines.map(line => (
-                        <option key={line.key} value={line.key}>
-                          {line.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="form-section">
