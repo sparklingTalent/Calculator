@@ -3,26 +3,28 @@ FROM node:20-alpine AS base
 
 WORKDIR /app
 
-# Install root dependencies
+# Install root dependencies (if needed)
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev || true
 
-# Install backend dependencies
+# Copy and install backend dependencies
 COPY backend/package*.json ./backend/
 WORKDIR /app/backend
 RUN npm ci --omit=dev
 
-# Copy backend source files
+# Copy all backend source files
+WORKDIR /app
 COPY backend/ ./backend/
 
+# Verify backend files are copied
+RUN ls -la /app/backend/ | head -10
+
 # Install frontend dependencies
-WORKDIR /app
 COPY frontend/package*.json ./frontend/
 WORKDIR /app/frontend
 RUN npm ci
 
 # Build frontend
-WORKDIR /app/frontend
 COPY frontend/ ./
 RUN npm run build
 
@@ -31,16 +33,18 @@ FROM node:20-alpine AS production
 
 WORKDIR /app
 
-# Copy backend package files first
+# Copy backend package files
 COPY --from=base /app/backend/package*.json ./
 RUN npm ci --omit=dev
 
-# Copy all backend files (including server.js)
+# Copy ALL backend files (the * copies everything including server.js)
 COPY --from=base /app/backend/ ./
+
+# Verify server.js exists
+RUN ls -la /app/ && test -f /app/server.js && echo "✓ server.js found" || (echo "✗ server.js NOT found" && exit 1)
 
 # Expose port
 EXPOSE 3001
 
 # Start server
 CMD ["node", "server.js"]
-
