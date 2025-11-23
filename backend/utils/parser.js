@@ -22,12 +22,18 @@ export function parsePricingDataWithBands(rows, tabName = '') {
                    (tabName.toLowerCase().includes('us') && 
                     !tabName.toLowerCase().includes('international'));
   
+  // Extract shipping line name from tab name
+  // For non-US tabs, the tab name itself represents the shipping line
+  // e.g., "Standard", "Standard Battery", "Priority", etc.
+  const shippingLineFromTab = extractShippingLineFromTabName(tabName, isUSTab);
+  let defaultShippingLineKey = shippingLineFromTab || 'default';
+  
   // Find column indices - flexible column detection
   const columnIndices = findColumnIndices(headers);
   
   let currentZone = null;
   let currentCountry = '';
-  let currentShippingLine = 'default'; // Default shipping line key
+  let currentShippingLine = defaultShippingLineKey; // Use shipping line from tab name as default
   
   // If this is a US tab, automatically add United States to countries
   if (isUSTab) {
@@ -70,10 +76,16 @@ export function parsePricingDataWithBands(rows, tabName = '') {
     const bandData = parseWeightBandData(row, columnIndices);
     if (!bandData) continue;
     
-    // For US tab, use the shipping line from the row; otherwise use 'default'
-    const shippingLineKey = (isUSTab && currentShippingLine !== 'default') 
-      ? currentShippingLine 
-      : 'default';
+    // For US tab, use the shipping line from the row; 
+    // For other tabs, use shipping line from tab name (or from row if found)
+    let shippingLineKey = defaultShippingLineKey;
+    if (isUSTab && currentShippingLine !== defaultShippingLineKey) {
+      // US tab: use shipping line from data row
+      shippingLineKey = currentShippingLine;
+    } else if (!isUSTab && currentShippingLine !== defaultShippingLineKey && currentShippingLine !== 'default') {
+      // Non-US tab: prefer shipping line from data row if found, otherwise use tab name
+      shippingLineKey = currentShippingLine;
+    }
     
     // Store the band data
     storeBandData(
@@ -92,7 +104,72 @@ export function parsePricingDataWithBands(rows, tabName = '') {
     console.log(`🇺🇸 United States shipping lines found: ${usShippingLines.join(', ')}`);
   }
   
+  // Log what we found for other countries
+  if (!isUSTab) {
+    for (const country of Object.keys(shippingLines)) {
+      const countryShippingLines = Object.keys(shippingLines[country]);
+      if (countryShippingLines.length > 0) {
+        console.log(`🌍 ${country} shipping lines found: ${countryShippingLines.join(', ')} (from tab: ${tabName})`);
+      }
+    }
+  }
+  
   return { countries, zones, shippingLines };
+}
+
+/**
+ * Extract shipping line name from tab name
+ * For non-US tabs, the tab name typically represents the shipping line
+ * @param {string} tabName - Tab name
+ * @param {boolean} isUSTab - Whether this is a US tab
+ * @returns {string|null} - Shipping line key or null
+ */
+function extractShippingLineFromTabName(tabName, isUSTab) {
+  if (!tabName) return null;
+  
+  let name = tabName.trim();
+  
+  // For US tabs, we'll extract shipping line from the data itself
+  // For other tabs, extract from tab name
+  if (isUSTab) {
+    return null; // US tabs have shipping lines in the data
+  }
+  
+  // Remove location prefixes
+  const locationPatterns = [
+    /^united\s+states\s+/i,
+    /^us\s+/i,
+    /^international\s+/i,
+    /^intl\s+/i,
+    /\s+united\s+states$/i,
+    /\s+us$/i,
+    /\s+international$/i,
+    /\s+intl$/i
+  ];
+  
+  for (const pattern of locationPatterns) {
+    name = name.replace(pattern, '').trim();
+  }
+  
+  // Remove "Pricing" suffix if present
+  name = name.replace(/\s+pricing$/i, '').trim();
+  
+  // Skip if it's a special tab
+  const nameLower = name.toLowerCase();
+  if (nameLower === 'tab' || 
+      nameLower === 'description' ||
+      nameLower.includes('rate calculator') ||
+      nameLower.includes('other services')) {
+    return null;
+  }
+  
+  // If name is empty or too short, return null
+  if (!name || name.length < 2) {
+    return null;
+  }
+  
+  // Normalize to key format (lowercase, hyphens instead of spaces)
+  return name.toLowerCase().replace(/\s+/g, '-');
 }
 
 /**

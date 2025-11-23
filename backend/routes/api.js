@@ -34,6 +34,8 @@ router.get('/countries', async (req, res) => {
              nameLower !== 'description';
     });
     
+    console.log(`📋 Processing ${dataTabs.length} data tabs: ${dataTabs.join(', ')}`);
+    
     const allCountries = new Set();
     const allZones = {};
     const allShippingLines = {}; // Structure: country -> shippingLine -> data
@@ -120,17 +122,23 @@ router.get('/countries', async (req, res) => {
       const availableShippingLines = [];
       if (allShippingLines[country]) {
         const shippingLineKeys = Object.keys(allShippingLines[country]);
+        console.log(`📦 ${country} has ${shippingLineKeys.length} shipping lines: ${shippingLineKeys.join(', ')}`);
+        
         for (const key of shippingLineKeys) {
-          // Get shipping line name from tab or use key
+          // Get shipping line name from key (convert from "standard-battery" to "Standard Battery")
           const name = key === 'default' 
             ? extractShippingLineNameFromTabs(dataTabs, country) || 'Standard'
-            : key.charAt(0).toUpperCase() + key.slice(1).replace(/-/g, ' ');
+            : key.split('-').map(word => 
+                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+              ).join(' ');
           
           availableShippingLines.push({
             key: key,
             name: name
           });
         }
+      } else {
+        console.log(`⚠️  ${country} has no shipping lines in allShippingLines`);
       }
       
       result.countriesData[country] = {
