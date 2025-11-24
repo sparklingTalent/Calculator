@@ -140,8 +140,41 @@ router.get('/countries', async (req, res) => {
     
     console.log(`🌍 Total countries: ${allCountries.size}, Countries with shipping lines: ${countriesWithShippingLines.length}`);
     
+    // Sort countries: common countries first, then alphabetically
+    const commonCountries = ['United States', 'USA', 'US', 'Canada', 'United Kingdom', 'UK', 'Australia', 'Germany'];
+    const sortedCountries = countriesWithShippingLines.sort((a, b) => {
+      // Normalize country names for matching
+      const normalizeCountry = (country) => {
+        const lower = country.toLowerCase();
+        if (lower.includes('united states') || lower === 'usa' || lower === 'us') return 'united states';
+        if (lower === 'canada') return 'canada';
+        if (lower.includes('united kingdom') || lower === 'uk') return 'united kingdom';
+        if (lower === 'australia') return 'australia';
+        if (lower === 'germany') return 'germany';
+        return null;
+      };
+      
+      const aNormalized = normalizeCountry(a);
+      const bNormalized = normalizeCountry(b);
+      
+      const commonOrder = ['united states', 'canada', 'united kingdom', 'australia', 'germany'];
+      const aIndex = aNormalized ? commonOrder.indexOf(aNormalized) : -1;
+      const bIndex = bNormalized ? commonOrder.indexOf(bNormalized) : -1;
+      
+      // If both are common countries, sort by their order in commonOrder
+      if (aIndex !== -1 && bIndex !== -1) {
+        return aIndex - bIndex;
+      }
+      // If only a is common, it comes first
+      if (aIndex !== -1) return -1;
+      // If only b is common, it comes first
+      if (bIndex !== -1) return 1;
+      // If neither is common, sort alphabetically
+      return a.localeCompare(b);
+    });
+    
     const result = {
-      countries: countriesWithShippingLines.sort(),
+      countries: sortedCountries,
       countriesData: {}
     };
     
@@ -167,6 +200,7 @@ router.get('/countries', async (req, res) => {
         // Check both zones (if country has zones) and direct shipping lines
         let maxWeightKg = 0;
         let maxWeightLb = 0;
+        let transitTime = null;
         
         // Check shipping lines data
         if (allShippingLines[country] && allShippingLines[country][key]) {
@@ -179,7 +213,15 @@ router.get('/countries', async (req, res) => {
               if (band.weightLb && band.weightLb.max > maxWeightLb) {
                 maxWeightLb = band.weightLb.max;
               }
+              // Get transit time from first band that has it
+              if (!transitTime && band.transitTime) {
+                transitTime = band.transitTime;
+              }
             }
+          }
+          // Also check service-level transit time
+          if (!transitTime && shippingLineData.transitTime) {
+            transitTime = shippingLineData.transitTime;
           }
         }
         
@@ -194,8 +236,35 @@ router.get('/countries', async (req, res) => {
                 if (band.weightLb && band.weightLb.max > maxWeightLb) {
                   maxWeightLb = band.weightLb.max;
                 }
+                // Get transit time from first band that has it
+                if (!transitTime && band.transitTime) {
+                  transitTime = band.transitTime;
+                }
+              }
+              // Check zone-level transit time
+              if (!transitTime && allZones[country][zone][key].transitTime) {
+                transitTime = allZones[country][zone][key].transitTime;
               }
             }
+          }
+        }
+        
+        // Format transit time for display
+        let deliveryTime = null;
+        if (transitTime) {
+          if (typeof transitTime === 'string') {
+            // If it already includes "days", use as-is
+            if (transitTime.toLowerCase().includes('days') || transitTime.toLowerCase().includes('day')) {
+              deliveryTime = transitTime;
+            } else if (transitTime.match(/^\d+$/)) {
+              // If it's just a number, assume days
+              deliveryTime = `${transitTime} days`;
+            } else {
+              // Use as-is for ranges like "5-7 days"
+              deliveryTime = transitTime;
+            }
+          } else if (typeof transitTime === 'number' && transitTime > 0 && transitTime <= 365) {
+            deliveryTime = `${Math.round(transitTime)} days`;
           }
         }
         
@@ -203,7 +272,8 @@ router.get('/countries', async (req, res) => {
           key: key,
           name: name,
           maxWeightKg: maxWeightKg > 0 ? parseFloat(maxWeightKg.toFixed(2)) : null,
-          maxWeightLb: maxWeightLb > 0 ? parseFloat(maxWeightLb.toFixed(2)) : null
+          maxWeightLb: maxWeightLb > 0 ? parseFloat(maxWeightLb.toFixed(2)) : null,
+          deliveryTime: deliveryTime
         });
       }
       

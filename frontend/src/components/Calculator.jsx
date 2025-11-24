@@ -301,7 +301,7 @@ function Calculator() {
                     </option>
                     {availableShippingLines.map(line => (
                       <option key={line.key} value={line.key}>
-                        {line.name}
+                        {line.name}{line.deliveryTime ? ` (${line.deliveryTime})` : ''}
                       </option>
                     ))}
                   </select>
