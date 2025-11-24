@@ -18,7 +18,7 @@ function ResultCard({ calculation, loading }) {
       <div className="result-card">
         <div className="result-placeholder">
           <div className="placeholder-icon-wrapper">
-            <div className="placeholder-icon">🚢</div>
+            <div className="placeholder-icon">✈️</div>
           </div>
           <h3>Ready to Calculate</h3>
           <p>Fill in the form and click "Calculate Rate" to see your shipping estimate with Portless.</p>

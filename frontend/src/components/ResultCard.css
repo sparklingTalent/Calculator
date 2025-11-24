@@ -95,15 +95,24 @@
   font-size: 5rem;
   opacity: 0.6;
   filter: grayscale(0.3);
-  animation: iconFloat 3s ease-in-out infinite;
+  animation: planeFly 4s ease-in-out infinite;
 }
 
-@keyframes iconFloat {
-  0%, 100% {
-    transform: translateY(0) rotate(0deg);
+@keyframes planeFly {
+  0% {
+    transform: translateY(0) translateX(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-15px) translateX(10px) rotate(5deg);
   }
   50% {
-    transform: translateY(-10px) rotate(5deg);
+    transform: translateY(-25px) translateX(5px) rotate(-3deg);
+  }
+  75% {
+    transform: translateY(-15px) translateX(-5px) rotate(3deg);
+  }
+  100% {
+    transform: translateY(0) translateX(0) rotate(0deg);
   }
 }
 
