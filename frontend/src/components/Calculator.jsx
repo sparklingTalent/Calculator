@@ -185,7 +185,15 @@ function Calculator() {
       console.log('📤 Sending calculate request:', payload);
       const response = await axios.post(`${API_BASE_URL}/api/calculate`, payload);
       console.log('✅ Calculate response:', response.data);
-      setCalculation(response.data);
+      
+      // Format the service name (without delivery time)
+      const formattedCalculation = { ...response.data };
+      if (selectedShippingLineData) {
+        // Use just the name without delivery time
+        formattedCalculation.serviceName = selectedShippingLineData.name;
+      }
+      
+      setCalculation(formattedCalculation);
     } catch (err) {
       console.error('Calculation error:', err);
       setError(err.response?.data?.error || 'Failed to calculate costs. Please check your inputs.');
