@@ -519,6 +519,7 @@
   background: var(--surface);
   border-radius: var(--radius);
   border-left: 3px solid var(--accent-color);
+  border-right: 3px solid var(--accent-color);
 }
 
 .zone-field {

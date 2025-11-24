@@ -586,34 +586,142 @@ router.post('/calculate', async (req, res) => {
     let transitTime = null;
     let foundShippingLineKey = null;
     
-    // Try exact match first
-    if (allShippingLines[country] && allShippingLines[country][normalizedShippingLine]) {
-      foundShippingLineKey = normalizedShippingLine;
-    } else if (allShippingLines[country]) {
-      // Try to find by matching key or name
-      const availableKeys = Object.keys(allShippingLines[country]);
-      foundShippingLineKey = availableKeys.find(key => 
-        key === normalizedShippingLine || 
-        key.includes(normalizedShippingLine) || 
-        normalizedShippingLine.includes(key)
-      ) || availableKeys.find(key => key === 'default');
+    // For countries with zones (like Australia), check zones first
+    if (zone && allZones[country] && allZones[country][zone]) {
+      // Get available shipping line keys from the zone
+      const zoneShippingLineKeys = Object.keys(allZones[country][zone]);
+      
+      if (zoneShippingLineKeys.length === 0) {
+        console.warn(`⚠️  Zone "${zone}" for ${country} has no shipping lines`);
+      }
+      
+      // Try to find matching shipping line in the zone
+      // First try exact match
+      foundShippingLineKey = zoneShippingLineKeys.find(key => key === normalizedShippingLine);
+      
+      // Then try partial match
+      if (!foundShippingLineKey) {
+        foundShippingLineKey = zoneShippingLineKeys.find(key => 
+          key.includes(normalizedShippingLine) || 
+          normalizedShippingLine.includes(key)
+        );
+      }
+      
+      // Finally try 'default' or 'standard' as fallback
+      if (!foundShippingLineKey) {
+        foundShippingLineKey = zoneShippingLineKeys.find(key => key === 'default') ||
+                              zoneShippingLineKeys.find(key => key === 'standard') ||
+                              zoneShippingLineKeys[0]; // Use first available if nothing matches
+      }
+      
+      // If found, get service data from zone
+      if (foundShippingLineKey && allZones[country][zone][foundShippingLineKey]) {
+        serviceData = allZones[country][zone][foundShippingLineKey];
+        console.log(`✅ Found shipping line "${foundShippingLineKey}" in ${country} zone "${zone}"`);
+      } else {
+        console.warn(`⚠️  Shipping line "${normalizedShippingLine}" not found in ${country} zone "${zone}". Available: ${zoneShippingLineKeys.join(', ')}`);
+      }
     }
     
-    if (zone && allZones[country] && allZones[country][zone] && foundShippingLineKey && allZones[country][zone][foundShippingLineKey]) {
-      serviceData = allZones[country][zone][foundShippingLineKey];
-    } else if (foundShippingLineKey && allShippingLines[country] && allShippingLines[country][foundShippingLineKey]) {
-      serviceData = allShippingLines[country][foundShippingLineKey];
+    // If not found in zones (or no zone specified), try direct shipping lines
+    if (!serviceData && allShippingLines[country]) {
+      const availableKeys = Object.keys(allShippingLines[country]);
+      
+      // Try exact match first
+      if (allShippingLines[country][normalizedShippingLine]) {
+        foundShippingLineKey = normalizedShippingLine;
+        serviceData = allShippingLines[country][foundShippingLineKey];
+        console.log(`✅ Found shipping line "${foundShippingLineKey}" in ${country} (direct)`);
+      } else {
+        // Try to find by matching key or name
+        foundShippingLineKey = availableKeys.find(key => key === normalizedShippingLine) ||
+                              availableKeys.find(key => key.includes(normalizedShippingLine) || normalizedShippingLine.includes(key)) ||
+                              availableKeys.find(key => key === 'default') ||
+                              availableKeys.find(key => key === 'standard') ||
+                              availableKeys[0]; // Use first available if nothing matches
+        
+        if (foundShippingLineKey && allShippingLines[country][foundShippingLineKey]) {
+          serviceData = allShippingLines[country][foundShippingLineKey];
+          console.log(`✅ Found shipping line "${foundShippingLineKey}" in ${country} (direct, matched from "${normalizedShippingLine}")`);
+        } else {
+          console.warn(`⚠️  Shipping line "${normalizedShippingLine}" not found in ${country} direct shipping lines. Available: ${availableKeys.join(', ')}`);
+        }
+      }
+    }
+    
+    // If still not found and we have a zone, try to find in any zone (fallback)
+    if (!serviceData && zone && allZones[country]) {
+      console.log(`⚠️  Trying fallback: searching all zones for ${country}...`);
+      for (const zoneKey of Object.keys(allZones[country])) {
+        if (allZones[country][zoneKey]) {
+          const zoneKeys = Object.keys(allZones[country][zoneKey]);
+          const matchingKey = zoneKeys.find(key => key === normalizedShippingLine) ||
+                             zoneKeys.find(key => key.includes(normalizedShippingLine) || normalizedShippingLine.includes(key)) ||
+                             zoneKeys.find(key => key === 'default') ||
+                             zoneKeys.find(key => key === 'standard') ||
+                             zoneKeys[0];
+          if (matchingKey && allZones[country][zoneKey][matchingKey]) {
+            foundShippingLineKey = matchingKey;
+            serviceData = allZones[country][zoneKey][matchingKey];
+            console.log(`✅ Found shipping line "${foundShippingLineKey}" in ${country} zone "${zoneKey}" (fallback)`);
+            break;
+          }
+        }
+      }
+    }
+    
+    // Log what we found for debugging
+    console.log(`\n🔍 Calculation request: ${country}${zone ? ` (zone: ${zone})` : ''}, shipping line: "${shippingLine}" (normalized: "${normalizedShippingLine}")`);
+    
+    if (serviceData) {
+      console.log(`✅ Service data found: ${serviceData.bands?.length || 0} bands available`);
+      console.log(`   Found shipping line key: "${foundShippingLineKey}"`);
+    } else {
+      console.error(`❌ No service data found for ${country}${zone ? ` (zone: ${zone})` : ''} with shipping line "${shippingLine}" (normalized: "${normalizedShippingLine}")`);
+      
+      // Debug: Show what's available
+      if (zone && allZones[country] && allZones[country][zone]) {
+        console.error(`   Available shipping lines in zone "${zone}": ${Object.keys(allZones[country][zone]).join(', ')}`);
+      }
+      if (allZones[country]) {
+        console.error(`   All zones for ${country}: ${Object.keys(allZones[country]).join(', ')}`);
+        for (const z of Object.keys(allZones[country])) {
+          console.error(`     Zone "${z}" shipping lines: ${Object.keys(allZones[country][z] || {}).join(', ')}`);
+        }
+      }
+      if (allShippingLines[country]) {
+        console.error(`   Direct shipping lines for ${country}: ${Object.keys(allShippingLines[country]).join(', ')}`);
+      }
     }
     
     if (!serviceData || !serviceData.bands || serviceData.bands.length === 0) {
       // List available shipping lines in error message
-      if (allShippingLines[country]) {
-        const available = Object.keys(allShippingLines[country]).join(', ');
-        return res.status(400).json({ 
-          error: `Shipping line "${shippingLine}" not found for ${country}. Available: ${available}` 
-        });
+      let availableLines = [];
+      
+      // Check zones first (for countries with zones)
+      if (allZones[country]) {
+        for (const zoneKey of Object.keys(allZones[country])) {
+          if (allZones[country][zoneKey]) {
+            const zoneLines = Object.keys(allZones[country][zoneKey]);
+            availableLines.push(...zoneLines);
+          }
+        }
       }
-      return res.status(400).json({ error: `No shipping lines found for ${country}` });
+      
+      // Also check direct shipping lines
+      if (allShippingLines[country]) {
+        availableLines.push(...Object.keys(allShippingLines[country]));
+      }
+      
+      // Remove duplicates
+      const uniqueLines = [...new Set(availableLines)];
+      const available = uniqueLines.length > 0 
+        ? uniqueLines.map(key => key.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')).join(', ')
+        : 'none';
+      
+      return res.status(400).json({ 
+        error: `Shipping line "${shippingLine}" not found for ${country}${zone ? ` (zone: ${zone})` : ''}. Available: ${available}` 
+      });
     }
     
     // Find the appropriate weight band
