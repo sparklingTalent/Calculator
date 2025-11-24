@@ -42,77 +42,51 @@ function ResultCard({ calculation, loading }) {
         <div className="cost-breakdown">
           <div className="cost-item">
             <div className="cost-label">
-              <span className="cost-icon">📦</span>
-              <div className="cost-label-text">
-                <span className="cost-label-title">Fulfillment Fee</span>
-                <span className="cost-label-subtitle">Warehouse processing</span>
-              </div>
-            </div>
-            <div className="cost-value">${calculation.fulfillmentFee.toFixed(2)}</div>
-          </div>
-
-          <div className="cost-item">
-            <div className="cost-label">
               <span className="cost-icon">🚚</span>
               <div className="cost-label-text">
-                <span className="cost-label-title">Shipping Cost</span>
-                <span className="cost-label-subtitle">
-                  {calculation.baseRate && calculation.baseRate > 0 ? (
-                    <>
-                      Base: ${calculation.baseRate.toFixed(2)} + 
-                      ${calculation.freightPerUnit?.toFixed(2) || '0.00'}/{calculation.weightUnit} × {calculation.weightUsed?.toFixed(2) || '0.00'}{calculation.weightUnit}
-                    </>
-                  ) : (
-                    <>
-                      ${calculation.freightPerUnit?.toFixed(2) || '0.00'}/{calculation.weightUnit} × {calculation.weightUsed?.toFixed(2) || '0.00'}{calculation.weightUnit}
-                    </>
-                  )}
-                </span>
+                <span className="cost-label-title">Shipping cost</span>
               </div>
             </div>
             <div className="cost-value">${calculation.shippingCost.toFixed(2)}</div>
           </div>
 
-          <div className="cost-divider"></div>
+          <div className="cost-item">
+            <div className="cost-label">
+              <span className="cost-icon">📦</span>
+              <div className="cost-label-text">
+                <span className="cost-label-title">Pick and Pack</span>
+                <span className="cost-label-subtitle">Includes first 3 picks</span>
+              </div>
+            </div>
+            <div className="cost-value">$1.50</div>
+          </div>
 
           <div className="cost-item cost-item-total">
             <div className="cost-label">
               <span className="cost-icon">💰</span>
               <div className="cost-label-text">
-                <span className="cost-label-title">Total Landed Cost</span>
-                <span className="cost-label-subtitle">All-inclusive shipping rate</span>
+                <span className="cost-label-title">Total cost</span>
               </div>
             </div>
             <div className="cost-value cost-value-total">
-              ${calculation.totalCost.toFixed(2)}
+              ${(calculation.shippingCost + 1.50).toFixed(2)} total
             </div>
           </div>
         </div>
 
-        <div className="result-details">
-          <div className="detail-card">
-            <div className="detail-icon">📅</div>
-            <div className="detail-content">
-              <span className="detail-label">Estimated Delivery</span>
-              <span className="detail-value">
-                {calculation.deliveryDays && calculation.deliveryDays !== 'N/A' && calculation.deliveryDays !== '--'
-                  ? (typeof calculation.deliveryDays === 'string' && calculation.deliveryDays.includes('days')
-                      ? calculation.deliveryDays
-                      : `${calculation.deliveryDays} days`)
-                  : '--'}
-              </span>
-            </div>
-          </div>
-          
-          {calculation.serviceDescription && (
-            <div className="detail-card">
-              <div className="detail-icon">ℹ️</div>
-              <div className="detail-content">
-                <span className="detail-label">Service Type</span>
-                <span className="detail-value">{calculation.serviceDescription}</span>
-              </div>
-            </div>
-          )}
+        <div className="result-notes">
+          <h3 className="notes-title">Notes on shipping estimate:</h3>
+          <ul className="notes-list">
+            <li className="notes-item">
+              <strong>Storage:</strong> $2 per bin per month (and $15 per pallet per month)
+            </li>
+            <li className="notes-item">
+              <strong>Packaging:</strong> If boxes required, we source and charge cost (poly bags are included)
+            </li>
+            <li className="notes-item">
+              Total cost assumes actual weight equals billable weight
+            </li>
+          </ul>
         </div>
       </div>
 
