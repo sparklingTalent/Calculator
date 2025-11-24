@@ -64,7 +64,12 @@ router.get('/countries', async (req, res) => {
       const parsed = result.parsed;
       const isSecondTab = i % 2 === 1; // Every second tab in a pair
       
-      parsed.countries.forEach(c => allCountries.add(c));
+      console.log(`📊 Processing tab "${result.tabName}": ${parsed.countries.size} countries, ${Object.keys(parsed.shippingLines).length} countries with direct shipping lines, ${Object.keys(parsed.zones).length} countries with zones`);
+      
+      parsed.countries.forEach(c => {
+        allCountries.add(c);
+        console.log(`   Found country: "${c}"`);
+      });
       
       // Merge zones
       for (const country of Object.keys(parsed.zones)) {
@@ -91,7 +96,10 @@ router.get('/countries', async (req, res) => {
       // Merge shipping lines - this is the key structure
       for (const country of Object.keys(parsed.shippingLines)) {
         if (!allShippingLines[country]) allShippingLines[country] = {};
-        for (const shippingLine of Object.keys(parsed.shippingLines[country])) {
+        const shippingLineKeys = Object.keys(parsed.shippingLines[country]);
+        console.log(`   ${country} shipping lines from this tab: ${shippingLineKeys.join(', ')}`);
+        
+        for (const shippingLine of shippingLineKeys) {
           if (!allShippingLines[country][shippingLine]) {
             allShippingLines[country][shippingLine] = {
               bands: [],
@@ -99,7 +107,10 @@ router.get('/countries', async (req, res) => {
             };
           }
           // Merge bands
-          allShippingLines[country][shippingLine].bands.push(...parsed.shippingLines[country][shippingLine].bands);
+          const bandsToAdd = parsed.shippingLines[country][shippingLine].bands || [];
+          allShippingLines[country][shippingLine].bands.push(...bandsToAdd);
+          console.log(`     Merged ${bandsToAdd.length} bands for "${shippingLine}" (total: ${allShippingLines[country][shippingLine].bands.length})`);
+          
           // Use transit time from second tab if available
           if (isSecondTab && parsed.shippingLines[country][shippingLine].transitTime) {
             allShippingLines[country][shippingLine].transitTime = parsed.shippingLines[country][shippingLine].transitTime;

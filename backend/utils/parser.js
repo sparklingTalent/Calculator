@@ -28,6 +28,13 @@ export function parsePricingDataWithBands(rows, tabName = '') {
   const shippingLineFromTab = extractShippingLineFromTabName(tabName, isUSTab);
   let defaultShippingLineKey = shippingLineFromTab || 'default';
   
+  // Log extraction result for debugging
+  if (!isUSTab && !shippingLineFromTab) {
+    console.warn(`⚠️  Could not extract shipping line from tab name: "${tabName}"`);
+  } else if (!isUSTab) {
+    console.log(`📦 Extracted shipping line "${shippingLineFromTab}" from tab: "${tabName}"`);
+  }
+  
   // Find column indices - flexible column detection
   const columnIndices = findColumnIndices(headers);
   
@@ -164,6 +171,16 @@ function extractShippingLineFromTabName(tabName, isUSTab) {
   }
   
   // If name is empty or too short, return null
+  if (!name || name.length < 2) {
+    return null;
+  }
+  
+  // Handle common variations and edge cases
+  // Remove common suffixes that might interfere
+  name = name.replace(/\s*\(.*\)\s*$/g, '').trim(); // Remove anything in parentheses at the end
+  name = name.replace(/\s*-\s*$/g, '').trim(); // Remove trailing dashes
+  
+  // If name became empty after cleaning, return null
   if (!name || name.length < 2) {
     return null;
   }
