@@ -368,7 +368,7 @@ function Calculator() {
                 
                 <div className="input-group">
                   <label htmlFor="weight" className="input-label">
-                    Weight
+                    Weight - including packaging
                     {selectedShippingLineData && selectedShippingLineData.maxWeightKg && selectedShippingLineData.maxWeightLb && (
                       <span className="weight-limit-info">
                         <span className="limit-text">
@@ -411,11 +411,6 @@ function Calculator() {
                       <option value="lb">lb</option>
                     </select>
                   </div>
-                  {selectedShippingLineData && selectedShippingLineData.maxWeightKg && selectedShippingLineData.maxWeightLb && (
-                    <div className="weight-limit-hint">
-                      Maximum weight: {selectedShippingLineData.maxWeightKg} kg ({selectedShippingLineData.maxWeightLb} lb)
-                    </div>
-                  )}
                 </div>
               </div>
 

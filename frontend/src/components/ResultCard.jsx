@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
+import EmailModal from './EmailModal';
 import './ResultCard.css';
 
 function ResultCard({ calculation, loading }) {
+  const [showEmailModal, setShowEmailModal] = useState(false);
   if (loading) {
     return (
       <div className="result-card">
@@ -84,17 +86,40 @@ function ResultCard({ calculation, loading }) {
               <strong>Packaging:</strong> If boxes required, we source and charge cost (poly bags are included)
             </li>
             <li className="notes-item">
-              Total cost assumes actual weight equals billable weight
+              <strong>Total cost assumes actual weight equals billable weight</strong>
             </li>
           </ul>
         </div>
       </div>
 
       <div className="result-footer">
+        <button
+          type="button"
+          className="download-results-btn"
+          onClick={() => setShowEmailModal(true)}
+        >
+          <span>📥</span>
+          Download results
+        </button>
         <p className="result-note">
           * Estimates are based on current Portless rates. Final costs will be confirmed at checkout.
         </p>
       </div>
+
+      <EmailModal
+        isOpen={showEmailModal}
+        onClose={() => setShowEmailModal(false)}
+        onSend={async (email) => {
+          // TODO: Implement PDF generation and email sending
+          // For now, just simulate sending
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              alert('Results will be sent to ' + email);
+              resolve();
+            }, 1000);
+          });
+        }}
+      />
     </div>
   );
 }
