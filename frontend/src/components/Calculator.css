@@ -132,7 +132,7 @@
   min-height: 600px;
   position: relative;
   background-image: url('https://cdn.prod.website-files.com/64ef9362931278add4ce2f0b/64f0924a50590940aed80a7f_portless-map.png');
-  background-size: 80% 80%;
+  background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
   overflow: hidden;
