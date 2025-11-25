@@ -17,7 +17,7 @@ function Calculator() {
     shippingLine: '',
     zone: '',
     weight: '',
-    weightUnit: 'kg',
+    weightUnit: 'lb',
   });
 
   const [countries, setCountries] = useState([]);
@@ -209,7 +209,7 @@ function Calculator() {
       shippingLine: '',
       zone: '',
       weight: '',
-      weightUnit: 'kg',
+      weightUnit: 'lb',
     });
     setCalculation(null);
     setError(null);
@@ -218,6 +218,34 @@ function Calculator() {
   };
 
   const showZoneField = availableZones.length > 0;
+
+  // Australian zone descriptions mapping
+  const getZoneDescription = (zone, country) => {
+    if (country !== 'Australia') return '';
+    
+    const zoneDescriptions = {
+      'Zone 1': 'Sydney, Brisbane, Canberra, Melbourne, Adelaide, Perth',
+      'Zone 2': 'Newcastle, Wollongong, Geelong, Gold Coast, Sunshine Coast, Toowoomba',
+      'Zone 3': 'Regional NSW, Regional QLD, Regional VIC, Regional SA, Regional WA',
+      'Zone 4': 'Remote areas, Northern Territory, Tasmania, Outback regions',
+    };
+    
+    // Try exact match first
+    if (zoneDescriptions[zone]) {
+      return ` (${zoneDescriptions[zone]})`;
+    }
+    
+    // Try partial match for variations like "1", "Zone 1", etc.
+    const zoneNum = zone.toString().replace(/[^0-9]/g, '');
+    if (zoneNum) {
+      const zoneKey = `Zone ${zoneNum}`;
+      if (zoneDescriptions[zoneKey]) {
+        return ` (${zoneDescriptions[zoneKey]})`;
+      }
+    }
+    
+    return '';
+  };
 
   return (
     <div className="calculator-wrapper">
@@ -277,11 +305,14 @@ function Calculator() {
                       disabled={!formData.country || loadingData}
                     >
                       <option value="">Select zone</option>
-                      {availableZones.map(zone => (
-                        <option key={zone} value={zone}>
-                          {zone}
-                        </option>
-                      ))}
+                      {availableZones.map(zone => {
+                        const zoneDescription = getZoneDescription(zone, formData.country);
+                        return (
+                          <option key={zone} value={zone}>
+                            {zone}{zoneDescription}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
                 )}
