@@ -42,7 +42,7 @@ function ResultCard({ calculation, loading }) {
         <div className="cost-breakdown">
           <div className="cost-item">
             <div className="cost-label">
-              <span className="cost-icon">🚚</span>
+              <span className="cost-icon">✈️</span>
               <div className="cost-label-text">
                 <span className="cost-label-title">Shipping cost</span>
               </div>
