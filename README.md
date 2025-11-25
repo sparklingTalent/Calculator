@@ -1,6 +1,20 @@
-# Shipping Cost Calculator
+# Portless Shipping Rate Calculator
 
 An interactive, responsive shipping cost calculator for logistics platforms. This calculator allows users to input product variables (weight, dimensions, country, service level) and instantly receive fulfillment fees, shipping costs, and total landed cost estimates.
+
+## 📚 Documentation
+
+- **[CLIENT_GUIDE.md](./CLIENT_GUIDE.md)** - Non-technical guide for managing pricing data and calculator
+- **[DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)** - Complete deployment instructions for frontend and backend
+- **[MAINTENANCE_GUIDE.md](./MAINTENANCE_GUIDE.md)** - Ongoing maintenance and update procedures
+- **[QUICK_START.md](./QUICK_START.md)** - Quick reference for common tasks
+- **[API_DOCUMENTATION.md](./API_DOCUMENTATION.md)** - Complete backend API reference
+- **[COMPONENT_DOCUMENTATION.md](./COMPONENT_DOCUMENTATION.md)** - Complete frontend component reference
+
+**For clients managing pricing data:** Start with [CLIENT_GUIDE.md](./CLIENT_GUIDE.md)  
+**For developers deploying:** Start with [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)  
+**For API integration:** See [API_DOCUMENTATION.md](./API_DOCUMENTATION.md)  
+**For frontend development:** See [COMPONENT_DOCUMENTATION.md](./COMPONENT_DOCUMENTATION.md)
 
 ## Features
 
