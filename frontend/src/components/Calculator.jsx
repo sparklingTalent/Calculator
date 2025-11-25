@@ -224,7 +224,7 @@ function Calculator() {
       <div className="calculator-container">
         <div className="calculator-header">
           <div className="header-content">
-            <h1>Portless Rate Calculator</h1>
+            <h1>Portless Shipping Rate Calculator</h1>
             <p className="subtitle">
               Get instant shipping estimates with dynamic rate calculation
             </p>
@@ -307,11 +307,24 @@ function Calculator() {
                         ? 'No shipping lines available'
                         : 'Select shipping line'}
                     </option>
-                    {availableShippingLines.map(line => (
-                      <option key={line.key} value={line.key}>
-                        {line.name}{line.deliveryTime ? ` (${line.deliveryTime})` : ''}
-                      </option>
-                    ))}
+                    {availableShippingLines.map(line => {
+                      // Format delivery time - add "days" if not already present
+                      let deliveryTimeFormatted = '';
+                      if (line.deliveryTime) {
+                        const deliveryTime = line.deliveryTime.toString();
+                        // Check if "days" is already in the string
+                        if (deliveryTime.toLowerCase().includes('days') || deliveryTime.toLowerCase().includes('day')) {
+                          deliveryTimeFormatted = ` (${deliveryTime})`;
+                        } else {
+                          deliveryTimeFormatted = ` (${deliveryTime} days)`;
+                        }
+                      }
+                      return (
+                        <option key={line.key} value={line.key}>
+                          {line.name}{deliveryTimeFormatted}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               </div>
