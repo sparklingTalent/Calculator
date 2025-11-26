@@ -485,6 +485,17 @@ router.post('/calculate', async (req, res) => {
       return res.status(400).json({ error: 'Weight must be a positive number' });
     }
     
+    // Convert to lb for minimum weight check (0.25 lbs minimum)
+    const weightInLbForValidation = weightUnit === 'lb' ? weightNum : weightNum * 2.20462;
+    const minWeightLb = 0.25;
+    
+    if (weightInLbForValidation < minWeightLb) {
+      const minWeightInUnit = weightUnit === 'lb' ? minWeightLb : (minWeightLb / 2.20462).toFixed(2);
+      return res.status(400).json({ 
+        error: `Weight must be at least ${minWeightInUnit} ${weightUnit}. Minimum weight is 0.25 lbs (0.11 kg).` 
+      });
+    }
+    
     if (weightNum > 9999.99) {
       return res.status(400).json({ error: 'Weight cannot exceed 9999.99' });
     }
@@ -775,8 +786,14 @@ router.post('/calculate', async (req, res) => {
     }
     
     const freightPerUnit = useLb ? matchedBand.freightPerLb : matchedBand.freightPerKg;
-    const shippingCost = freightPerUnit * searchWeight;
-    const fulfillmentFee = matchedBand.injection || 0;
+    const injectionFee = matchedBand.injection || 0;
+    
+    // Shipping cost includes freight + injection fee
+    const shippingCost = (freightPerUnit * searchWeight) + injectionFee;
+    
+    // Fulfillment fee is static $1.50 for Pick and Pack
+    const fulfillmentFee = 1.50;
+    
     transitTime = matchedBand.transitTime || serviceData.transitTime;
     
     // Clean up transit time - remove any date serial numbers that might have slipped through

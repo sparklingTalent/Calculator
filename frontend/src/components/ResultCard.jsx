@@ -71,7 +71,7 @@ function ResultCard({ calculation, loading }) {
               </div>
             </div>
             <div className="cost-value cost-value-total">
-              ${(calculation.shippingCost + 1.50).toFixed(2)} total
+              ${calculation.totalCost.toFixed(2)} total
             </div>
           </div>
         </div>

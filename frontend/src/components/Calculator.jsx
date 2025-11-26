@@ -152,6 +152,19 @@ function Calculator() {
         return;
       }
 
+      // Check minimum weight (0.25 lbs = 0.11 kg)
+      const minWeightLb = 0.25;
+      const minWeightKg = 0.11;
+      const minWeight = formData.weightUnit === 'kg' ? minWeightKg : minWeightLb;
+      
+      // Convert to lbs for comparison
+      const weightInLb = formData.weightUnit === 'kg' ? weightValue * 2.20462 : weightValue;
+      
+      if (weightInLb < minWeightLb) {
+        setError(`Weight must be at least ${minWeight.toFixed(2)} ${formData.weightUnit}. Minimum weight is 0.25 lbs (0.11 kg).`);
+        return;
+      }
+
       // Check weight limit based on selected shipping line
       if (selectedShippingLineData) {
         const maxWeight = formData.weightUnit === 'kg' 
@@ -394,7 +407,7 @@ function Calculator() {
                       className="input-field weight-input"
                       placeholder="0.00"
                       step="0.01"
-                      min="0"
+                      min={formData.weightUnit === 'kg' ? '0.11' : '0.25'}
                       max={selectedShippingLineData 
                         ? (formData.weightUnit === 'kg' 
                             ? selectedShippingLineData.maxWeightKg || 9999.99
