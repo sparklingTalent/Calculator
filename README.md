@@ -83,15 +83,6 @@ If you want to use real Google Sheets data:
 
 ### 3. Set Up Your Google Sheet
 
-Create a Google Sheet with the following structure:
-
-| Zone | Country | Standard | Express | Fulfillment |
-|------|---------|----------|---------|-------------|
-| Zone 1 | United States | 15.00 | 35.00 | 5.00 |
-| Zone 1 | Canada | 18.00 | 40.00 | 5.00 |
-| Zone 2 | United Kingdom | 22.00 | 50.00 | 6.00 |
-| Zone 2 | Germany | 20.00 | 45.00 | 6.00 |
-
 **Note**: Column names are flexible - the system will auto-detect columns by name.
 
 ### 4. Configure Environment Variables (Optional)
