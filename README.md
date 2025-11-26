@@ -4,14 +4,11 @@ An interactive, responsive shipping cost calculator for logistics platforms. Thi
 
 ## 📚 Documentation
 
-- **[CLIENT_GUIDE.md](./CLIENT_GUIDE.md)** - Non-technical guide for managing pricing data and calculator
 - **[DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)** - Complete deployment instructions for frontend and backend
 - **[MAINTENANCE_GUIDE.md](./MAINTENANCE_GUIDE.md)** - Ongoing maintenance and update procedures
-- **[QUICK_START.md](./QUICK_START.md)** - Quick reference for common tasks
 - **[API_DOCUMENTATION.md](./API_DOCUMENTATION.md)** - Complete backend API reference
 - **[COMPONENT_DOCUMENTATION.md](./COMPONENT_DOCUMENTATION.md)** - Complete frontend component reference
 
-**For clients managing pricing data:** Start with [CLIENT_GUIDE.md](./CLIENT_GUIDE.md)  
 **For developers deploying:** Start with [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)  
 **For API integration:** See [API_DOCUMENTATION.md](./API_DOCUMENTATION.md)  
 **For frontend development:** See [COMPONENT_DOCUMENTATION.md](./COMPONENT_DOCUMENTATION.md)
@@ -279,30 +276,4 @@ The architecture is designed for easy extension:
 - [ ] Export/print functionality
 - [ ] Historical cost tracking
 
-## Troubleshooting
-
-### "Failed to fetch pricing data"
-- Check Google Sheets API credentials
-- Verify service account has access to the sheet
-- Check `GOOGLE_SHEET_ID` in `.env`
-
-### CORS Errors
-- Ensure `CORS_ORIGIN` in backend `.env` matches frontend URL
-- Or set to `*` for development (not recommended for production)
-
-### Calculation Errors
-- Verify Google Sheet has correct column structure
-- Check that weight and country are provided
-- Review backend logs for detailed errors
-
-## Support
-
-For issues or questions, please check:
-1. Google Sheets API documentation
-2. Backend server logs
-3. Browser console for frontend errors
-
-## License
-
-MIT
 
