@@ -102,7 +102,7 @@ function ResultCard({ calculation, loading }) {
           Download results
         </button>
         <p className="result-note">
-          * Estimates are based on current Portless rates. Final costs will be confirmed at checkout.
+          * Estimates are based on current Portless rates as of {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. Talk to your Portless logistics consultant.
         </p>
       </div>
 

@@ -288,12 +288,40 @@ router.get('/countries', async (req, res) => {
         });
       }
       
+      // Sort shipping lines - for USA, prioritize Standard, Priority, Standard Battery, Priority Battery
+      let sortedShippingLines = availableShippingLines;
+      if (country === 'United States' || country === 'USA' || country === 'US') {
+        const priorityLines = ['Standard', 'Priority', 'Standard Battery', 'Priority Battery'];
+        sortedShippingLines = availableShippingLines.sort((a, b) => {
+          const aIndex = priorityLines.indexOf(a.name);
+          const bIndex = priorityLines.indexOf(b.name);
+          
+          // If both are in priority list, sort by priority order
+          if (aIndex !== -1 && bIndex !== -1) {
+            return aIndex - bIndex;
+          }
+          // If only a is in priority list, it comes first
+          if (aIndex !== -1) {
+            return -1;
+          }
+          // If only b is in priority list, it comes first
+          if (bIndex !== -1) {
+            return 1;
+          }
+          // If neither is in priority list, sort alphabetically
+          return a.name.localeCompare(b.name);
+        });
+      } else {
+        // For other countries, sort alphabetically
+        sortedShippingLines = availableShippingLines.sort((a, b) => a.name.localeCompare(b.name));
+      }
+      
       result.countriesData[country] = {
         zones: allZones[country] || null,
         shippingLines: allShippingLines[country] || null,
         hasZones: hasZones,
         zoneList: hasZones ? Object.keys(allZones[country]).sort() : [],
-        availableShippingLines: availableShippingLines.length > 0 ? availableShippingLines.sort((a, b) => a.name.localeCompare(b.name)) : []
+        availableShippingLines: sortedShippingLines.length > 0 ? sortedShippingLines : []
       };
     }
     
@@ -446,6 +474,28 @@ router.get('/countries/:shippingChannel', async (req, res) => {
           key: key,
           name: key === 'default' ? 'Standard' : key.charAt(0).toUpperCase() + key.slice(1).replace(/-/g, ' ')
         }));
+        
+        // Sort shipping lines - prioritize Standard, Priority, Standard Battery, Priority Battery
+        const priorityLines = ['Standard', 'Priority', 'Standard Battery', 'Priority Battery'];
+        availableShippingLines = availableShippingLines.sort((a, b) => {
+          const aIndex = priorityLines.indexOf(a.name);
+          const bIndex = priorityLines.indexOf(b.name);
+          
+          // If both are in priority list, sort by priority order
+          if (aIndex !== -1 && bIndex !== -1) {
+            return aIndex - bIndex;
+          }
+          // If only a is in priority list, it comes first
+          if (aIndex !== -1) {
+            return -1;
+          }
+          // If only b is in priority list, it comes first
+          if (bIndex !== -1) {
+            return 1;
+          }
+          // If neither is in priority list, sort alphabetically
+          return a.name.localeCompare(b.name);
+        });
       }
       
       result.countriesData[country] = {
